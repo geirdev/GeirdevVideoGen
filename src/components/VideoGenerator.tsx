@@ -53,35 +53,35 @@ export const VideoGenerator: React.FC = () => {
     }
   }, []);
 
-  // 그록 CLI 로그인 브라우저 인증 구동 실행기
+  // CLI Login Trigger
   const handleAuthLogin = useCallback(async () => {
-    setStatusText('Grok CLI 인증을 구동하고 있습니다. 로컬 터미널 및 브라우저 창을 확인해 주세요...');
+    setStatusText('Launching CLI Authentication. Please check your local terminal or browser window...');
     try {
       const response = await fetch('/api-xai/api/auth/login', {
         method: 'POST'
       });
       if (response.ok) {
-        // 잠시 대기 후 계정 세션 갱신 체크
+        // Wait briefly for the session to refresh
         setTimeout(checkAuthStatus, 4000);
       } else {
-        setError('인증 프로세스 구동 실패. 터미널에서 직접 grok login을 실행해 주세요.');
+        setError('Failed to launch authentication process. Please run "grok login" directly in your terminal.');
       }
     } catch (e) {
-      setError('인증 중계 서버와의 통신에 실패했습니다.');
+      setError('Communication with the bridge authentication server failed.');
     } finally {
       setStatusText(null);
     }
   }, [checkAuthStatus]);
 
-  // 그록 CLI 로그아웃 실행기
+  // CLI Logout Trigger
   const handleAuthLogout = useCallback(async () => {
-    setStatusText('Grok CLI 로그아웃을 진행하고 있습니다...');
+    setStatusText('Logging out from CLI...');
     try {
       const response = await fetch('/api-xai/api/auth/logout', {
         method: 'POST'
       });
       if (response.ok) {
-        // 즉각적인 프론트엔드 상태 리셋 및 로그아웃 반영 (새로고침 불필요)
+        // Instantly reset frontend states without needing a page refresh
         setIsLoggedIn(false);
         setVideoUrl(null);
         setImageBase64(null);
@@ -91,10 +91,10 @@ export const VideoGenerator: React.FC = () => {
         }
         checkAuthStatus();
       } else {
-        setError('로그아웃 프로세스 실행에 실패했습니다.');
+        setError('Failed to execute the logout process.');
       }
     } catch (e) {
-      setError('로그아웃 중계 서버와의 통신에 실패했습니다.');
+      setError('Communication with the bridge logout server failed.');
     } finally {
       setStatusText(null);
     }
@@ -128,7 +128,7 @@ export const VideoGenerator: React.FC = () => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setError('이미지 파일만 업로드 가능합니다.');
+      setError('Only image files are allowed for upload.');
       return;
     }
 
@@ -172,7 +172,7 @@ export const VideoGenerator: React.FC = () => {
       img.src = base64;
     };
     reader.onerror = () => {
-      setError('파일을 읽는 중 오류가 발생했습니다.');
+      setError('An error occurred while reading the file.');
     };
     reader.readAsDataURL(file);
   }, []);
@@ -188,14 +188,14 @@ export const VideoGenerator: React.FC = () => {
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
-      setError('프롬프트를 입력해주세요.');
+      setError('Please enter a prompt.');
       return;
     }
 
     setIsLoading(true);
     setError(null);
     setVideoUrl(null);
-    setStatusText('비디오 생성 요청 중...');
+    setStatusText('Requesting video generation...');
 
     try {
       // 1. Queue the video job
@@ -238,21 +238,21 @@ export const VideoGenerator: React.FC = () => {
           finalErrMsg.toLowerCase().includes('censor') ||
           finalErrMsg.toLowerCase().includes('violation')
         ) {
-          throw new Error('그록(Grok)의 영상 검열(Safety Filter) 기준에 어긋나 비디오 생성 요청이 거부되었습니다. 프롬프트 내 자극적인 키워드를 제거하거나 다른 시작 이미지를 사용해 보세요.');
+          throw new Error("Video generation denied due to Grok's Safety Filter (Content Moderation). Please try removing sensitive keywords or using a different source image.");
         }
-        throw new Error(`비디오 생성 큐 등록 실패: ${finalErrMsg}`);
+        throw new Error(`Failed to queue video generation: ${finalErrMsg}`);
       }
 
       const queueData = await queueResponse.json();
       const requestId = queueData.request_id;
 
       if (!requestId) {
-        throw new Error('요청 ID(request_id)를 발급받지 못했습니다.');
+        throw new Error('Failed to acquire Request ID (request_id) from the API.');
       }
 
       // 2. Poll for completion
       let isCompleted = false;
-      setStatusText('비디오 생성 중... 잠시만 기다려주세요 (최대 몇 분 소요 가능)');
+      setStatusText('Generating video... Please wait (this can take up to a few minutes)');
       
       while (!isCompleted) {
         await new Promise(resolve => setTimeout(resolve, 5000)); // 5초 간격으로 폴링
@@ -271,7 +271,7 @@ export const VideoGenerator: React.FC = () => {
             const errObj = JSON.parse(errText);
             parsedMessage = errObj.error?.message || errObj.message || errObj.error_message || '';
           } catch (e) {}
-          throw new Error(`상태 폴링 실패: ${parsedMessage || errText}`);
+          throw new Error(`Status polling failed: ${parsedMessage || errText}`);
         }
 
         const retrieveData = await retrieveResponse.json();
@@ -290,26 +290,26 @@ export const VideoGenerator: React.FC = () => {
                return updated;
              });
            } else {
-             throw new Error('비디오 생성이 완료되었으나 다운로드 URL을 획득하지 못했습니다.');
+             throw new Error('Video generation completed, but failed to retrieve the download URL.');
            }
         } else if (retrieveData.status === 'failed') {
-           const rawErrMsg = retrieveData.error?.message || retrieveData.error_message || retrieveData.message || '알 수 없는 요인';
+           const rawErrMsg = retrieveData.error?.message || retrieveData.error_message || retrieveData.message || 'Unknown error';
            if (
              rawErrMsg.toLowerCase().includes('safety') || 
              rawErrMsg.toLowerCase().includes('moderation') || 
              rawErrMsg.toLowerCase().includes('censor') ||
              rawErrMsg.toLowerCase().includes('violation')
            ) {
-             throw new Error('생성 실패: 그록(Grok)의 영상 안전 검열(Safety Filter)에 의해 비디오 생성이 중단되었습니다. 프롬프트나 첨부된 소스 이미지를 좀 더 순화하여 다시 시도해 주세요.');
+             throw new Error("Generation Failed: Video generation aborted by Grok's Safety Filter. Please refine your prompt or source image and try again.");
            }
-           throw new Error(`생성 실패: ${rawErrMsg}`);
+           throw new Error(`Generation Failed: ${rawErrMsg}`);
         }
-        // 'processing' 상태인 경우 계속 대기
+        // Continue waiting if status is 'processing'
       }
       
     } catch (err: any) {
       console.error('Generation error:', err);
-      setError(err.message || '비디오 생성 중 예측하지 못한 오류가 발생했습니다.');
+      setError(err.message || 'An unexpected error occurred during video generation.');
     } finally {
       setIsLoading(false);
       setStatusText(null);
@@ -358,7 +358,7 @@ export const VideoGenerator: React.FC = () => {
               e.currentTarget.style.background = 'transparent';
             }}
           >
-            🔒 Grok CLI 로그아웃
+            🔒 CLI Logout
           </button>
         </div>
       )}
@@ -377,11 +377,11 @@ export const VideoGenerator: React.FC = () => {
           boxShadow: '0 8px 32px 0 rgba(239, 71, 111, 0.1)'
         }}>
           <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#ef476f', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            ⚠️ Grok CLI 인증 세션이 감지되지 않습니다
+            ⚠️ CLI Authentication Session Not Detected
           </div>
           <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-            비디오 생성을 위해서는 로컬 PC에 Grok CLI 로그인이 완료되어 있어야 합니다.<br />
-            아래 인증 버튼을 클릭해 그록(Grok) 계정 인증을 손쉽게 완료하세요.
+            To generate videos, you must be logged into the CLI.<br />
+            Click the button below to easily authenticate your account.
           </div>
           <button 
             type="button"
@@ -403,13 +403,13 @@ export const VideoGenerator: React.FC = () => {
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
-            Grok CLI 인증 연동하기 (Browser OAuth)
+            Authenticate CLI (Browser OAuth)
           </button>
         </div>
       )}
       <div className="controls-row">
         <div className="input-group" style={{ flex: 1.5 }}>
-          <label htmlFor="model-select">비디오 모델 선택</label>
+          <label htmlFor="model-select">Select Video Model</label>
           <select 
             id="model-select" 
             className="model-select"
@@ -424,7 +424,7 @@ export const VideoGenerator: React.FC = () => {
         </div>
 
         <div className="input-group" style={{ flex: 1 }}>
-          <label htmlFor="resolution-select">화질 해상도</label>
+          <label htmlFor="resolution-select">Resolution / Quality</label>
           <select 
             id="resolution-select" 
             className="model-select"
@@ -432,13 +432,13 @@ export const VideoGenerator: React.FC = () => {
             onChange={(e) => setResolution(e.target.value)}
             disabled={isLoading}
           >
-            <option value="720p">고화질 (720p)</option>
-            <option value="480p">일반화질 (480p)</option>
+            <option value="720p">High Definition (720p)</option>
+            <option value="480p">Standard Definition (480p)</option>
           </select>
         </div>
 
         <div className="input-group" style={{ flex: 1 }}>
-          <label htmlFor="duration-select">길이</label>
+          <label htmlFor="duration-select">Duration</label>
           <select 
             id="duration-select" 
             className="model-select"
@@ -446,17 +446,17 @@ export const VideoGenerator: React.FC = () => {
             onChange={(e) => setDuration(e.target.value)}
             disabled={isLoading}
           >
-            <option value="5s">5초</option>
-            <option value="10s">10초</option>
-            <option value="15s">15초</option>
+            <option value="5s">5 Seconds</option>
+            <option value="10s">10 Seconds</option>
+            <option value="15s">15 Seconds</option>
           </select>
         </div>
 
         <div className="input-group" style={{ flex: 1.5 }}>
-          <label>시작 이미지 첨부 (옵션)</label>
+          <label>Source Image (Optional)</label>
           <div className="file-upload-wrapper">
             <button className="file-input-btn" type="button" onClick={() => fileInputRef.current?.click()}>
-              📸 {imageBase64 ? '이미지 변경' : '이미지 업로드'}
+              📸 {imageBase64 ? 'Change Image' : 'Upload Image'}
             </button>
             <input 
               type="file" 
@@ -471,7 +471,7 @@ export const VideoGenerator: React.FC = () => {
         </div>
       </div>
       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '-0.4rem', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'center' }}>
-        💡 화면 비율은 첨부된 이미지에 맞춰 자동으로 최적 조정됩니다.
+        💡 Aspect ratio auto-adjusts to match your source image.
       </div>
 
       {imageBase64 && (
@@ -484,11 +484,11 @@ export const VideoGenerator: React.FC = () => {
       )}
 
       <div className="input-group">
-        <label htmlFor="prompt">어떤 비디오를 만들고 싶으신가요?</label>
+        <label htmlFor="prompt">What kind of video would you like to create?</label>
         <textarea
           id="prompt"
           className="prompt-input"
-          placeholder="예: 사이버펑크 도시를 걷는 고양이, 네온 사인, 시네마틱 4K..."
+          placeholder="e.g., A neon-lit cyberpunk cat walking down a cinematic street, 4k..."
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -504,10 +504,10 @@ export const VideoGenerator: React.FC = () => {
         {isLoading ? (
           <>
             <span className="spinner"></span>
-            생성 중...
+            Generating...
           </>
         ) : (
-          '비디오 생성하기'
+          'Generate Video'
         )}
       </button>
 
@@ -531,9 +531,9 @@ export const VideoGenerator: React.FC = () => {
           gap: '0.2rem',
           boxShadow: '0 4px 15px rgba(239, 71, 111, 0.15)'
         }}>
-          <span style={{ fontSize: '1.05rem', color: '#ff4d6d' }}>⚠️ 중요: 브라우저 종료/이탈 금지</span>
+          <span style={{ fontSize: '1.05rem', color: '#ff4d6d' }}>⚠️ CRITICAL: DO NOT CLOSE OR REFRESH BROWSER</span>
           <span style={{ fontWeight: 500, color: 'rgba(255, 255, 255, 0.9)' }}>
-            비디오 생성이 백엔드에서 원활하게 완결될 때까지 <strong>절대 브라우저 창이나 탭을 닫거나 새로고침하지 마세요!</strong>
+            Video generation is in progress. <strong>Do not close, refresh, or leave this page until the generation is fully complete!</strong>
           </span>
         </div>
       )}
@@ -558,7 +558,7 @@ export const VideoGenerator: React.FC = () => {
         ) : (
           <div className="video-placeholder">
             <div className="placeholder-icon">🎬</div>
-            <p>{isLoading ? 'AI가 멋진 비디오를 만들고 있습니다. 이 작업은 다소 시간이 걸릴 수 있습니다.' : '프롬프트와 이미지를 입력하고 생성 버튼을 눌러주세요.'}</p>
+            <p>{isLoading ? 'AI is crafting a stunning video. This process may take a few minutes.' : 'Provide a prompt and optional image, then click Generate.'}</p>
             {isLoading && (
               <div style={{
                 marginTop: '1.2rem',
@@ -576,10 +576,10 @@ export const VideoGenerator: React.FC = () => {
                 boxShadow: '0 4px 15px rgba(239, 71, 111, 0.15)'
               }}>
                 <div style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
-                  ⚠️ 절대 브라우저 창/탭 종료 금지!
+                  ⚠️ CRITICAL: KEEP BROWSER ACTIVE
                 </div>
                 <div style={{ fontWeight: 500, fontSize: '0.85rem', color: 'rgba(255, 107, 107, 0.9)' }}>
-                  비디오 생성이 진행 중입니다. 페이지를 새로고침하거나 브라우저를 닫을 경우 작업이 중단될 수 있습니다.
+                  Generation in progress. Closing this page or refreshing will abort your video generation.
                 </div>
               </div>
             )}
@@ -589,7 +589,7 @@ export const VideoGenerator: React.FC = () => {
 
       {history.length > 0 && (
         <div className="history-section" style={{ marginTop: '2rem', width: '100%', maxWidth: '800px' }}>
-          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>생성 기록</h3>
+          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>Generation History</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
             {history.map(item => (
               <div key={item.id} style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--glass-border)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -607,7 +607,7 @@ export const VideoGenerator: React.FC = () => {
                   className="btn-primary" 
                   style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
                 >
-                  재생
+                  Play
                 </button>
                 <a 
                   href={item.url} 
@@ -616,7 +616,7 @@ export const VideoGenerator: React.FC = () => {
                   className="btn-primary" 
                   style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', background: 'transparent', border: '1px solid var(--primary-color)' }}
                 >
-                  링크
+                  Link
                 </a>
               </div>
             ))}

@@ -12,8 +12,8 @@ function App() {
       </div>
       
       <div className="app-container">
-        <h1>Grok Builder Video Generator</h1>
-        <p className="subtitle">Grok CLI 에이전트와 연동하여 고품질 AI 비디오를 생성해 보세요</p>
+        <h1>GeirdevVideoGen</h1>
+        <p className="subtitle">Generate high-quality AI videos seamlessly with CLI integration</p>
         
         <VideoGenerator />
       </div>
