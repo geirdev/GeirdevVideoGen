@@ -510,3 +510,257 @@ label {
   from { transform: translateY(20px) scale(0.95); opacity: 0; }
   to { transform: translateY(0) scale(1); opacity: 1; }
 }
+
+/* ==========================================================================
+   Premium AI Studio Upgrades (GeirdevVideoGen Design System)
+   ========================================================================== */
+
+/* Settings Option 3-column Grid */
+.settings-option-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.2rem;
+  width: 100%;
+}
+
+/* 2-Column Work Bench Grid (Prompt on Left, DND Well on Right) */
+.studio-workspace-grid {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 1.5rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+@media (max-width: 868px) {
+  .settings-option-grid {
+    grid-template-columns: 1fr;
+  }
+  .studio-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Glassmorphism Upload Card Well */
+.upload-card-well {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 18px;
+  padding: 1.5rem;
+  min-height: 180px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+  text-align: center;
+  gap: 0.7rem;
+  height: 100%;
+}
+
+.upload-card-well:hover {
+  background: rgba(123, 44, 191, 0.05);
+  border-color: var(--primary-hover);
+  box-shadow: 0 0 25px rgba(157, 78, 221, 0.2);
+  transform: translateY(-3px);
+}
+
+.upload-card-well .upload-icon {
+  font-size: 2.4rem;
+  background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 8px rgba(123, 44, 191, 0.3));
+  transition: transform 0.3s ease;
+}
+
+.upload-card-well:hover .upload-icon {
+  transform: scale(1.15) translateY(-2px);
+}
+
+.upload-card-well .upload-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.upload-card-well .upload-subtitle {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Image Preview Studio Card */
+.preview-studio-card {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  height: 100%;
+  min-height: 180px;
+  background: #080612;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.preview-studio-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(123, 44, 191, 0.25);
+}
+
+.preview-studio-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.preview-studio-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(11, 9, 30, 0.75);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  gap: 0.5rem;
+  transition: opacity 0.3s ease;
+  z-index: 5;
+}
+
+.preview-studio-card:hover .preview-studio-overlay {
+  opacity: 1;
+}
+
+.preview-studio-badge {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 0.8rem;
+  background: rgba(15, 12, 41, 0.85);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Super Premium Tip Banner */
+.tip-studio-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.015);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.75rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.3rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.tip-studio-banner span.emoji {
+  animation: pulse-emoji 2s infinite;
+  font-size: 0.95rem;
+}
+
+@keyframes pulse-emoji {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(255,223,0,0.5)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(255,255,255,0)); }
+}
+
+/* Premium Accent Rainbow Button Overrides */
+.generate-studio-btn {
+  width: 100%;
+  background: linear-gradient(135deg, #7b2cbf 0%, #ff4d6d 45%, #2d00f7 100%);
+  background-size: 200% auto;
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 1.2rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.15);
+  box-shadow: 0 4px 20px rgba(123, 44, 191, 0.3);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  letter-spacing: 0.5px;
+}
+
+.generate-studio-btn:hover:not(:disabled) {
+  background-position: right center;
+  transform: translateY(-2px) scale(1.008);
+  box-shadow: 0 8px 30px rgba(123, 44, 191, 0.45), 0 0 20px rgba(255, 77, 109, 0.35);
+}
+
+.generate-studio-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.995);
+}
+
+.generate-studio-btn:disabled {
+  background: linear-gradient(135deg, #2a2a35 0%, #1e1e25 100%);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.5;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Mini remove action in studio overlay */
+.overlay-remove-btn {
+  background: #ff4d6d;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 77, 109, 0.3);
+  transition: all 0.2s ease;
+}
+
+.overlay-remove-btn:hover {
+  background: #ff758f;
+  transform: scale(1.05);
+}
+
+.overlay-change-btn {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 10px;
+  padding: 0.45rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(5px);
+}
+
+.overlay-change-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+

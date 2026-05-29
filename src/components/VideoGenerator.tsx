@@ -324,44 +324,47 @@ export const VideoGenerator: React.FC = () => {
   }, [isLoading, handleGenerate]);
 
   return (
-    <div className="glass-panel">
+    <div className="glass-panel" style={{ position: 'relative' }}>
+      {/* 1. CLI Logout Button: Absolutely Positioned in Top Right to preserve space */}
       {isLoggedIn === true && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          width: '100%',
-          marginBottom: '0.2rem'
-        }}>
-          <button
-            type="button"
-            onClick={handleAuthLogout}
-            disabled={isLoading}
-            style={{
-              background: 'transparent',
-              color: 'var(--text-muted)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: '8px',
-              padding: '0.4rem 0.9rem',
-              fontSize: '0.83rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#ef476f';
-              e.currentTarget.style.borderColor = 'rgba(239, 71, 111, 0.4)';
-              e.currentTarget.style.background = 'rgba(239, 71, 111, 0.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = 'var(--text-muted)';
-              e.currentTarget.style.borderColor = 'var(--glass-border)';
-              e.currentTarget.style.background = 'transparent';
-            }}
-          >
-            🔒 CLI Logout
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleAuthLogout}
+          disabled={isLoading}
+          style={{
+            position: 'absolute',
+            top: '1.25rem',
+            right: '1.25rem',
+            background: 'rgba(255, 255, 255, 0.03)',
+            color: 'var(--text-muted)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: '8px',
+            padding: '0.4rem 0.8rem',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.3rem'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = '#ef476f';
+            e.currentTarget.style.borderColor = 'rgba(239, 71, 111, 0.4)';
+            e.currentTarget.style.background = 'rgba(239, 71, 111, 0.05)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--text-muted)';
+            e.currentTarget.style.borderColor = 'var(--glass-border)';
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+          }}
+        >
+          🔒 CLI Logout
+        </button>
       )}
+
+      {/* 2. CLI Authentication Warning banner */}
       {isLoggedIn === false && (
         <div style={{
           background: 'rgba(239, 71, 111, 0.08)',
@@ -374,12 +377,12 @@ export const VideoGenerator: React.FC = () => {
           flexDirection: 'column',
           alignItems: 'center',
           gap: '0.8rem',
-          boxShadow: '0 8px 32px 0 rgba(239, 71, 111, 0.1)'
+          boxShadow: '0 8px 32px 0 rgba(239, 71, 111, 0.08)'
         }}>
-          <div style={{ fontSize: '1.15rem', fontWeight: 600, color: '#ef476f', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#ef476f', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             ⚠️ CLI Authentication Session Not Detected
           </div>
-          <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+          <div style={{ fontSize: '0.88rem', color: 'var(--text-muted)', lineHeight: 1.45 }}>
             To generate videos, you must be logged into the CLI.<br />
             Click the button below to easily authenticate your account.
           </div>
@@ -391,14 +394,14 @@ export const VideoGenerator: React.FC = () => {
               background: 'linear-gradient(135deg, #ef476f 0%, #ff6b6b 100%)',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
-              padding: '0.6rem 1.2rem',
-              fontSize: '0.95rem',
+              borderRadius: '10px',
+              padding: '0.6rem 1.4rem',
+              fontSize: '0.92rem',
               fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 4px 15px rgba(239, 71, 111, 0.3)',
+              boxShadow: '0 4px 15px rgba(239, 71, 111, 0.25)',
               transition: 'all 0.2s ease',
-              marginTop: '0.3rem'
+              marginTop: '0.2rem'
             }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -407,8 +410,10 @@ export const VideoGenerator: React.FC = () => {
           </button>
         </div>
       )}
-      <div className="controls-row">
-        <div className="input-group" style={{ flex: 1.5 }}>
+
+      {/* 3. Dropdown Options Row (Settings bar with 3 columns) */}
+      <div className="settings-option-grid">
+        <div className="input-group">
           <label htmlFor="model-select">Select Video Model</label>
           <select 
             id="model-select" 
@@ -423,7 +428,7 @@ export const VideoGenerator: React.FC = () => {
           </select>
         </div>
 
-        <div className="input-group" style={{ flex: 1 }}>
+        <div className="input-group">
           <label htmlFor="resolution-select">Resolution / Quality</label>
           <select 
             id="resolution-select" 
@@ -437,7 +442,7 @@ export const VideoGenerator: React.FC = () => {
           </select>
         </div>
 
-        <div className="input-group" style={{ flex: 1 }}>
+        <div className="input-group">
           <label htmlFor="duration-select">Duration</label>
           <select 
             id="duration-select" 
@@ -451,53 +456,72 @@ export const VideoGenerator: React.FC = () => {
             <option value="15s">15 Seconds</option>
           </select>
         </div>
+      </div>
 
-        <div className="input-group" style={{ flex: 1.5 }}>
+      {/* 4. Core Workspace layout (2-Column Grid: Prompt & Source Image Upload well) */}
+      <div className="studio-workspace-grid">
+        {/* Left column: Text Prompt area */}
+        <div className="input-group" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <label htmlFor="prompt">What kind of video would you like to create?</label>
+          <textarea
+            id="prompt"
+            className="prompt-input"
+            placeholder="e.g., A neon-lit cyberpunk cat walking down a cinematic street, 4k..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={isLoading}
+            style={{ flex: 1, minHeight: '180px' }}
+          />
+        </div>
+
+        {/* Right column: Source Image Uploader Well */}
+        <div className="input-group" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
           <label>Source Image (Optional)</label>
-          <div className="file-upload-wrapper">
-            <button className="file-input-btn" type="button" onClick={() => fileInputRef.current?.click()}>
-              📸 {imageBase64 ? 'Change Image' : 'Upload Image'}
-            </button>
-            <input 
-              type="file" 
-              ref={fileInputRef}
-              className="file-input" 
-              accept="image/*" 
-              onChange={handleFileChange}
-              disabled={isLoading}
-              style={{ display: 'none' }}
-            />
-          </div>
+          <input 
+            type="file" 
+            ref={fileInputRef}
+            className="file-input" 
+            accept="image/*" 
+            onChange={handleFileChange}
+            disabled={isLoading}
+            style={{ display: 'none' }}
+          />
+          
+          {!imageBase64 ? (
+            <div className="upload-card-well" onClick={() => fileInputRef.current?.click()}>
+              <span className="upload-icon">📸</span>
+              <span className="upload-title">Upload Image</span>
+              <span className="upload-subtitle">Click here to browse<br/>local files to animate</span>
+            </div>
+          ) : (
+            <div className="preview-studio-card">
+              <img src={imageBase64} alt="Source Preview" className="preview-studio-img" />
+              <div className="preview-studio-overlay">
+                <button type="button" className="overlay-change-btn" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
+                  Change
+                </button>
+                <button type="button" className="overlay-remove-btn" onClick={clearImage} disabled={isLoading}>
+                  Remove
+                </button>
+              </div>
+              <div className="preview-studio-badge">
+                <span>🖼️</span> Aspect: {aspectRatio}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '-0.4rem', marginBottom: '0.2rem', display: 'flex', alignItems: 'center', gap: '0.3rem', justifyContent: 'center' }}>
-        💡 Aspect ratio auto-adjusts to match your source image.
+
+      {/* 5. Informative Banner */}
+      <div className="tip-studio-banner">
+        <span className="emoji">💡</span>
+        <span>Aspect ratio auto-adjusts to match your source image.</span>
       </div>
 
-      {imageBase64 && (
-        <div className="image-preview-container">
-          <img src={imageBase64} alt="Preview" className="image-preview" />
-          <button className="remove-image-btn" onClick={clearImage} disabled={isLoading} title="이미지 제거">
-            &times;
-          </button>
-        </div>
-      )}
-
-      <div className="input-group">
-        <label htmlFor="prompt">What kind of video would you like to create?</label>
-        <textarea
-          id="prompt"
-          className="prompt-input"
-          placeholder="e.g., A neon-lit cyberpunk cat walking down a cinematic street, 4k..."
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isLoading}
-        />
-      </div>
-
+      {/* 6. Premium Generate Button */}
       <button 
-        className="generate-btn" 
+        className="generate-studio-btn" 
         onClick={handleGenerate}
         disabled={isLoading || !prompt.trim()}
       >
@@ -507,17 +531,19 @@ export const VideoGenerator: React.FC = () => {
             Generating...
           </>
         ) : (
-          'Generate Video'
+          <>🎬 Generate Video</>
         )}
       </button>
 
-      {statusText && <div className="status-text">{statusText}</div>}
+      {/* 7. Loading progress status message */}
+      {statusText && <div className="status-text" style={{ textAlign: 'center', fontWeight: 500 }}>{statusText}</div>}
 
+      {/* 8. Safety/Interruption Warning Box */}
       {isLoading && (
         <div style={{
           background: 'rgba(239, 71, 111, 0.12)',
           border: '1px solid rgba(239, 71, 111, 0.35)',
-          borderRadius: '12px',
+          borderRadius: '14px',
           padding: '0.9rem 1.2rem',
           textAlign: 'center',
           color: '#ff6b6b',
@@ -538,13 +564,14 @@ export const VideoGenerator: React.FC = () => {
         </div>
       )}
 
-
+      {/* 9. Error display Modal */}
       <ErrorModal 
         isOpen={!!error} 
         message={error || ''} 
         onClose={() => setError(null)} 
       />
 
+      {/* 10. Main Output Video / Placeholder Canvas */}
       <div className="video-container">
         {videoUrl ? (
           <video 
@@ -558,7 +585,7 @@ export const VideoGenerator: React.FC = () => {
         ) : (
           <div className="video-placeholder">
             <div className="placeholder-icon">🎬</div>
-            <p>{isLoading ? 'AI is crafting a stunning video. This process may take a few minutes.' : 'Provide a prompt and optional image, then click Generate.'}</p>
+            <p style={{ fontSize: '0.95rem' }}>{isLoading ? 'AI is crafting a stunning video. This process may take a few minutes.' : 'Provide a prompt and optional image, then click Generate.'}</p>
             {isLoading && (
               <div style={{
                 marginTop: '1.2rem',
@@ -578,7 +605,7 @@ export const VideoGenerator: React.FC = () => {
                 <div style={{ fontSize: '1.05rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem' }}>
                   ⚠️ CRITICAL: KEEP BROWSER ACTIVE
                 </div>
-                <div style={{ fontWeight: 500, fontSize: '0.85rem', color: 'rgba(255, 107, 107, 0.9)' }}>
+                <div style={{ fontWeight: 500, fontSize: '0.85rem', color: 'rgba(255, 107, 107, 0.9)', lineHeight: 1.4 }}>
                   Generation in progress. Closing this page or refreshing will abort your video generation.
                 </div>
               </div>
@@ -587,25 +614,26 @@ export const VideoGenerator: React.FC = () => {
         )}
       </div>
 
+      {/* 11. Generation History Section */}
       {history.length > 0 && (
-        <div className="history-section" style={{ marginTop: '2rem', width: '100%', maxWidth: '800px' }}>
-          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem' }}>Generation History</h3>
+        <div className="history-section" style={{ marginTop: '2rem', width: '100%' }}>
+          <h3 style={{ marginBottom: '1rem', borderBottom: '1px solid var(--glass-border)', paddingBottom: '0.5rem', fontSize: '1.15rem' }}>Generation History</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '0.5rem' }}>
             {history.map(item => (
               <div key={item.id} style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--glass-border)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
                 <video src={item.url} style={{ width: '120px', height: '67px', borderRadius: '8px', objectFit: 'cover', background: '#000' }} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
+                  <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginBottom: '0.2rem' }}>
                     {new Date(item.timestamp).toLocaleString()}
                   </div>
-                  <div style={{ fontSize: '0.95rem', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  <div style={{ fontSize: '0.92rem', wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', color: '#f0f0f5' }}>
                     {item.prompt}
                   </div>
                 </div>
                 <button 
                   onClick={() => setVideoUrl(item.url)} 
                   className="btn-primary" 
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.9rem' }}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', background: 'var(--primary-color)', border: 'none', borderRadius: '8px' }}
                 >
                   Play
                 </button>
@@ -614,7 +642,7 @@ export const VideoGenerator: React.FC = () => {
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="btn-primary" 
-                  style={{ padding: '0.5rem 1rem', fontSize: '0.9rem', textDecoration: 'none', background: 'transparent', border: '1px solid var(--primary-color)' }}
+                  style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', textDecoration: 'none', background: 'transparent', border: '1px solid var(--primary-color)', borderRadius: '8px', color: '#fff', textAlign: 'center' }}
                 >
                   Link
                 </a>
