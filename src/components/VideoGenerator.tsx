@@ -14,12 +14,40 @@ interface VideoHistory {
   timestamp: number;
 }
 
+interface SlotState {
+  prompt: string;
+  selectedModel: string;
+  imageBase64: string | null;
+  aspectRatio: string;
+  duration: string;
+  resolution: string;
+  isLoading: boolean;
+  statusText: string | null;
+  videoUrl: string | null;
+  error: string | null;
+}
+
 export const VideoGenerator: React.FC = () => {
-  const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState(MODELS[0].id);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [aspectRatio, setAspectRatio] = useState('16:9');
-  const [duration, setDuration] = useState('5s');
+  const createEmptySlot = (): SlotState => ({
+    prompt: '',
+    selectedModel: MODELS[0].id,
+    imageBase64: null,
+    aspectRatio: '16:9',
+    duration: '5s',
+    resolution: '720p',
+    isLoading: false,
+    statusText: null,
+    videoUrl: null,
+    error: null,
+  });
+
+  const [slots, setSlots] = useState<SlotState[]>([
+    createEmptySlot(),
+    createEmptySlot(),
+    createEmptySlot()
+  ]);
+  const [activeSlotIdx, setActiveSlotIdx] = useState(0);
+  
   const [history, setHistory] = useState<VideoHistory[]>(() => {
     try {
       const saved = localStorage.getItem('grok_video_history');
@@ -29,16 +57,30 @@ export const VideoGenerator: React.FC = () => {
     }
   });
   
-  const [isLoading, setIsLoading] = useState(false);
-  const [statusText, setStatusText] = useState<string | null>(null);
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [resolution, setResolution] = useState('720p');
-  
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [globalStatusText, setGlobalStatusText] = useState<string | null>(null);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // slots의 최신 참조를 유지하기 위한 useRef (의존성 최소화 및 성능 극대화)
+  const slotsRef = useRef(slots);
+  useEffect(() => {
+    slotsRef.current = slots;
+  }, [slots]);
+
+  // 특정 슬롯의 상태를 갱신하는 헬퍼 함수 (의존성 무영향)
+  const updateSlot = useCallback((idx: number, updater: Partial<SlotState> | ((prev: SlotState) => SlotState)) => {
+    setSlots(prev => prev.map((slot, sIdx) => {
+      if (sIdx !== idx) return slot;
+      if (typeof updater === 'function') {
+        return updater(slot);
+      }
+      return { ...slot, ...updater };
+    }));
+  }, []);
+
+  const activeSlot = slots[activeSlotIdx];
 
   // 실시간 그록 CLI 로그인 상태 판독 함수
   const checkAuthStatus = useCallback(async () => {
@@ -55,7 +97,7 @@ export const VideoGenerator: React.FC = () => {
 
   // CLI Login Trigger
   const handleAuthLogin = useCallback(async () => {
-    setStatusText('Launching CLI Authentication. Please check your local terminal or browser window...');
+    setGlobalStatusText('Launching CLI Authentication. Please check your local terminal or browser window...');
     try {
       const response = await fetch('/api-xai/api/auth/login', {
         method: 'POST'
@@ -64,53 +106,61 @@ export const VideoGenerator: React.FC = () => {
         // Wait briefly for the session to refresh
         setTimeout(checkAuthStatus, 4000);
       } else {
-        setError('Failed to launch authentication process. Please run "grok login" directly in your terminal.');
+        updateSlot(activeSlotIdx, { error: 'Failed to launch authentication process. Please run "grok login" directly in your terminal.' });
       }
     } catch (e) {
-      setError('Communication with the bridge authentication server failed.');
+      updateSlot(activeSlotIdx, { error: 'Communication with the bridge authentication server failed.' });
     } finally {
-      setStatusText(null);
+      setGlobalStatusText(null);
     }
-  }, [checkAuthStatus]);
+  }, [activeSlotIdx, updateSlot, checkAuthStatus]);
 
   // CLI Logout Trigger
   const handleAuthLogout = useCallback(async () => {
-    setStatusText('Logging out from CLI...');
+    const isAnyLoading = slotsRef.current.some(s => s.isLoading);
+    if (isAnyLoading) {
+      updateSlot(activeSlotIdx, { error: 'Cannot logout while video generation is in progress.' });
+      return;
+    }
+
+    setGlobalStatusText('Logging out from CLI...');
     try {
       const response = await fetch('/api-xai/api/auth/logout', {
         method: 'POST'
       });
       if (response.ok) {
-        // Instantly reset frontend states without needing a page refresh
         setIsLoggedIn(false);
-        setVideoUrl(null);
-        setImageBase64(null);
-        setPrompt('');
+        setSlots([
+          createEmptySlot(),
+          createEmptySlot(),
+          createEmptySlot()
+        ]);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
         checkAuthStatus();
       } else {
-        setError('Failed to execute the logout process.');
+        updateSlot(activeSlotIdx, { error: 'Failed to execute the logout process.' });
       }
     } catch (e) {
-      setError('Communication with the bridge logout server failed.');
+      updateSlot(activeSlotIdx, { error: 'Communication with the bridge logout server failed.' });
     } finally {
-      setStatusText(null);
+      setGlobalStatusText(null);
     }
-  }, [checkAuthStatus]);
+  }, [activeSlotIdx, updateSlot, checkAuthStatus]);
 
   // 마운트 시 인증 체크 및 주기적 실시간 세션 감시 기동
   useEffect(() => {
     checkAuthStatus();
-    const interval = setInterval(checkAuthStatus, 3000); // 3초 주기로 단축하여 빠른 로그인 감지 지원
+    const interval = setInterval(checkAuthStatus, 3000);
     return () => clearInterval(interval);
   }, [checkAuthStatus]);
 
   // 비디오 생성 중 브라우저 종료/새로고침 방지 안전장치
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isLoading) {
+      const isAnyLoading = slotsRef.current.some(s => s.isLoading);
+      if (isAnyLoading) {
         e.preventDefault();
         e.returnValue = '비디오 생성 중에 페이지를 벗어나면 생성이 중단될 수 있습니다. 절대 브라우저 창이나 탭을 닫지 마세요!';
         return e.returnValue;
@@ -120,22 +170,20 @@ export const VideoGenerator: React.FC = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isLoading]);
-
+  }, []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setError('Only image files are allowed for upload.');
+      updateSlot(activeSlotIdx, { error: 'Only image files are allowed for upload.' });
       return;
     }
 
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
-      setImageBase64(base64);
 
       // 이미지 객체를 로드하여 가로세로 치수 측정 및 최적 비디오 비율 자동 매핑
       const img = new Image();
@@ -166,51 +214,66 @@ export const VideoGenerator: React.FC = () => {
           }
         }
 
-        setAspectRatio(bestMatch.name);
-        console.log(`[Auto Aspect Ratio] Image Size: ${w}x${h} (Ratio: ${r.toFixed(3)}). Auto-set to: ${bestMatch.name}`);
+        updateSlot(activeSlotIdx, {
+          imageBase64: base64,
+          aspectRatio: bestMatch.name,
+          error: null
+        });
+        console.log(`[Auto Aspect Ratio] Slot ${activeSlotIdx + 1} Image Size: ${w}x${h} (Ratio: ${r.toFixed(3)}). Auto-set to: ${bestMatch.name}`);
       };
       img.src = base64;
     };
     reader.onerror = () => {
-      setError('An error occurred while reading the file.');
+      updateSlot(activeSlotIdx, { error: 'An error occurred while reading the file.' });
     };
     reader.readAsDataURL(file);
-  }, []);
+  }, [activeSlotIdx, updateSlot]);
 
   const clearImage = useCallback(() => {
-    setImageBase64(null);
-    setAspectRatio('16:9'); // 이미지 제거 시 기본 비율로 리셋
+    updateSlot(activeSlotIdx, {
+      imageBase64: null,
+      aspectRatio: '16:9'
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, []);
-
+  }, [activeSlotIdx, updateSlot]);
 
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim()) {
-      setError('Please enter a prompt.');
+    const targetIdx = activeSlotIdx;
+    const currentSlot = slotsRef.current[targetIdx];
+    const promptVal = currentSlot.prompt;
+    const modelVal = currentSlot.selectedModel;
+    const imageVal = currentSlot.imageBase64;
+    const durationVal = currentSlot.duration;
+    const aspectVal = currentSlot.aspectRatio;
+    const resolutionVal = currentSlot.resolution;
+
+    if (!promptVal.trim()) {
+      updateSlot(targetIdx, { error: 'Please enter a prompt.' });
       return;
     }
 
-    setIsLoading(true);
-    setError(null);
-    setVideoUrl(null);
-    setStatusText('Requesting video generation...');
+    updateSlot(targetIdx, {
+      isLoading: true,
+      error: null,
+      videoUrl: null,
+      statusText: 'Requesting video generation...'
+    });
 
     try {
-      // 1. Queue the video job
-      const durationSeconds = parseInt(duration) || 5;
+      const durationSeconds = parseInt(durationVal) || 5;
       const requestBody: any = {
-        model: selectedModel,
-        prompt: prompt,
+        model: modelVal,
+        prompt: promptVal,
         duration: durationSeconds,
-        aspect_ratio: aspectRatio,
-        resolution: resolution
+        aspect_ratio: aspectVal,
+        resolution: resolutionVal
       };
 
-      if (imageBase64) {
+      if (imageVal) {
         requestBody.image = {
-          url: imageBase64
+          url: imageVal
         };
       }
 
@@ -250,12 +313,11 @@ export const VideoGenerator: React.FC = () => {
         throw new Error('Failed to acquire Request ID (request_id) from the API.');
       }
 
-      // 2. Poll for completion
       let isCompleted = false;
-      setStatusText('Generating video... Please wait (this can take up to a few minutes)');
+      updateSlot(targetIdx, { statusText: 'Generating video... Please wait (this can take up to a few minutes)' });
       
       while (!isCompleted) {
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 5초 간격으로 폴링
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
         const retrieveResponse = await fetch(`/api-xai/v1/videos/${requestId}`, {
           method: 'GET',
@@ -281,8 +343,9 @@ export const VideoGenerator: React.FC = () => {
            const finalUrl = retrieveData.video?.url;
            
            if (finalUrl) {
-             setVideoUrl(finalUrl);
-             const newHistoryItem = { id: requestId, prompt, url: finalUrl, timestamp: Date.now() };
+             updateSlot(targetIdx, { videoUrl: finalUrl, isLoading: false, statusText: null });
+             
+             const newHistoryItem = { id: requestId, prompt: promptVal, url: finalUrl, timestamp: Date.now() };
              setHistory(prev => {
                if (prev.find(h => h.id === requestId)) return prev;
                const updated = [newHistoryItem, ...prev];
@@ -304,66 +367,28 @@ export const VideoGenerator: React.FC = () => {
            }
            throw new Error(`Generation Failed: ${rawErrMsg}`);
         }
-        // Continue waiting if status is 'processing'
       }
       
     } catch (err: any) {
-      console.error('Generation error:', err);
-      setError(err.message || 'An unexpected error occurred during video generation.');
-    } finally {
-      setIsLoading(false);
-      setStatusText(null);
+      console.error(`[Slot ${targetIdx + 1}] Generation error:`, err);
+      updateSlot(targetIdx, {
+        error: err.message || 'An unexpected error occurred during video generation.',
+        isLoading: false,
+        statusText: null
+      });
     }
-  }, [prompt, selectedModel, imageBase64, duration, aspectRatio, resolution]);
+  }, [activeSlotIdx, updateSlot]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!isLoading) handleGenerate();
+      const currentSlot = slotsRef.current[activeSlotIdx];
+      if (!currentSlot.isLoading) handleGenerate();
     }
-  }, [isLoading, handleGenerate]);
+  }, [activeSlotIdx, handleGenerate]);
 
   return (
     <div className="glass-panel" style={{ position: 'relative' }}>
-      {/* 1. CLI Logout Button: Absolutely Positioned in Top Right to preserve space */}
-      {isLoggedIn === true && (
-        <button
-          type="button"
-          onClick={handleAuthLogout}
-          disabled={isLoading}
-          style={{
-            position: 'absolute',
-            top: '1.25rem',
-            right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.03)',
-            color: 'var(--text-muted)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: '8px',
-            padding: '0.4rem 0.8rem',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.3rem'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#ef476f';
-            e.currentTarget.style.borderColor = 'rgba(239, 71, 111, 0.4)';
-            e.currentTarget.style.background = 'rgba(239, 71, 111, 0.05)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = 'var(--text-muted)';
-            e.currentTarget.style.borderColor = 'var(--glass-border)';
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-          }}
-        >
-          🔒 CLI Logout
-        </button>
-      )}
-
       {/* 2. CLI Authentication Warning banner */}
       {isLoggedIn === false && (
         <div style={{
@@ -389,7 +414,7 @@ export const VideoGenerator: React.FC = () => {
           <button 
             type="button"
             onClick={handleAuthLogin}
-            disabled={isLoading}
+            disabled={globalStatusText !== null}
             style={{
               background: 'linear-gradient(135deg, #ef476f 0%, #ff6b6b 100%)',
               color: 'white',
@@ -411,6 +436,56 @@ export const VideoGenerator: React.FC = () => {
         </div>
       )}
 
+      {/* globalStatusText indicator for CLI processes */}
+      {globalStatusText && (
+        <div className="status-text" style={{ textAlign: 'center', fontWeight: 500, marginBottom: '1rem' }}>
+          {globalStatusText}
+        </div>
+      )}
+
+      {/* 2.5 Multi-Slot 3 Tabs Bar & Integrated CLI Logout Button */}
+      {isLoggedIn === true && (
+        <div className="slot-tabs-container">
+          <div style={{ display: 'flex', gap: '0.6rem', flex: 1 }}>
+            {slots.map((slot, idx) => {
+              const isGenerating = slot.isLoading;
+              const isReady = !!slot.videoUrl;
+              
+              let badgeEmoji = '🟢';
+              let badgeClass = 'slot-badge';
+              if (isGenerating) {
+                badgeEmoji = '⏳';
+                badgeClass += ' generating';
+              } else if (isReady) {
+                badgeEmoji = '🎬';
+              }
+
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`slot-tab-btn ${activeSlotIdx === idx ? 'active' : ''}`}
+                  onClick={() => setActiveSlotIdx(idx)}
+                  style={{ flex: 1 }}
+                >
+                  <span>Slot {idx + 1}</span>
+                  <span className={badgeClass}>{badgeEmoji}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAuthLogout}
+            disabled={slots.some(s => s.isLoading) || globalStatusText !== null}
+            className="slot-logout-btn"
+          >
+            🔒 CLI Logout
+          </button>
+        </div>
+      )}
+
       {/* 3. Dropdown Options Row (Settings bar with 3 columns) */}
       <div className="settings-option-grid">
         <div className="input-group">
@@ -418,9 +493,9 @@ export const VideoGenerator: React.FC = () => {
           <select 
             id="model-select" 
             className="model-select"
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            disabled={isLoading}
+            value={activeSlot.selectedModel}
+            onChange={(e) => updateSlot(activeSlotIdx, { selectedModel: e.target.value })}
+            disabled={activeSlot.isLoading}
           >
             {MODELS.map(model => (
               <option key={model.id} value={model.id}>{model.label}</option>
@@ -433,9 +508,9 @@ export const VideoGenerator: React.FC = () => {
           <select 
             id="resolution-select" 
             className="model-select"
-            value={resolution}
-            onChange={(e) => setResolution(e.target.value)}
-            disabled={isLoading}
+            value={activeSlot.resolution}
+            onChange={(e) => updateSlot(activeSlotIdx, { resolution: e.target.value })}
+            disabled={activeSlot.isLoading}
           >
             <option value="720p">High Definition (720p)</option>
             <option value="480p">Standard Definition (480p)</option>
@@ -447,9 +522,9 @@ export const VideoGenerator: React.FC = () => {
           <select 
             id="duration-select" 
             className="model-select"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            disabled={isLoading}
+            value={activeSlot.duration}
+            onChange={(e) => updateSlot(activeSlotIdx, { duration: e.target.value })}
+            disabled={activeSlot.isLoading}
           >
             <option value="5s">5 Seconds</option>
             <option value="10s">10 Seconds</option>
@@ -467,10 +542,10 @@ export const VideoGenerator: React.FC = () => {
             id="prompt"
             className="prompt-input"
             placeholder="e.g., A neon-lit cyberpunk cat walking down a cinematic street, 4k..."
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            value={activeSlot.prompt}
+            onChange={(e) => updateSlot(activeSlotIdx, { prompt: e.target.value })}
             onKeyDown={handleKeyDown}
-            disabled={isLoading}
+            disabled={activeSlot.isLoading}
             style={{ flex: 1, minHeight: '180px' }}
           />
         </div>
@@ -484,11 +559,11 @@ export const VideoGenerator: React.FC = () => {
             className="file-input" 
             accept="image/*" 
             onChange={handleFileChange}
-            disabled={isLoading}
+            disabled={activeSlot.isLoading}
             style={{ display: 'none' }}
           />
           
-          {!imageBase64 ? (
+          {!activeSlot.imageBase64 ? (
             <div className="upload-card-well" onClick={() => fileInputRef.current?.click()}>
               <span className="upload-icon">📸</span>
               <span className="upload-title">Upload Image</span>
@@ -496,17 +571,17 @@ export const VideoGenerator: React.FC = () => {
             </div>
           ) : (
             <div className="preview-studio-card">
-              <img src={imageBase64} alt="Source Preview" className="preview-studio-img" />
+              <img src={activeSlot.imageBase64} alt="Source Preview" className="preview-studio-img" />
               <div className="preview-studio-overlay">
-                <button type="button" className="overlay-change-btn" onClick={() => fileInputRef.current?.click()} disabled={isLoading}>
+                <button type="button" className="overlay-change-btn" onClick={() => fileInputRef.current?.click()} disabled={activeSlot.isLoading}>
                   Change
                 </button>
-                <button type="button" className="overlay-remove-btn" onClick={clearImage} disabled={isLoading}>
+                <button type="button" className="overlay-remove-btn" onClick={clearImage} disabled={activeSlot.isLoading}>
                   Remove
                 </button>
               </div>
               <div className="preview-studio-badge">
-                <span>🖼️</span> Aspect: {aspectRatio}
+                <span>🖼️</span> Aspect: {activeSlot.aspectRatio}
               </div>
             </div>
           )}
@@ -523,9 +598,9 @@ export const VideoGenerator: React.FC = () => {
       <button 
         className="generate-studio-btn" 
         onClick={handleGenerate}
-        disabled={isLoading || !prompt.trim()}
+        disabled={activeSlot.isLoading || !activeSlot.prompt.trim()}
       >
-        {isLoading ? (
+        {activeSlot.isLoading ? (
           <>
             <span className="spinner"></span>
             Generating...
@@ -536,10 +611,10 @@ export const VideoGenerator: React.FC = () => {
       </button>
 
       {/* 7. Loading progress status message */}
-      {statusText && <div className="status-text" style={{ textAlign: 'center', fontWeight: 500 }}>{statusText}</div>}
+      {activeSlot.statusText && <div className="status-text" style={{ textAlign: 'center', fontWeight: 500 }}>{activeSlot.statusText}</div>}
 
       {/* 8. Safety/Interruption Warning Box */}
-      {isLoading && (
+      {activeSlot.isLoading && (
         <div style={{
           background: 'rgba(239, 71, 111, 0.12)',
           border: '1px solid rgba(239, 71, 111, 0.35)',
@@ -566,18 +641,18 @@ export const VideoGenerator: React.FC = () => {
 
       {/* 9. Error display Modal */}
       <ErrorModal 
-        isOpen={!!error} 
-        message={error || ''} 
-        onClose={() => setError(null)} 
+        isOpen={!!activeSlot.error} 
+        message={activeSlot.error || ''} 
+        onClose={() => updateSlot(activeSlotIdx, { error: null })} 
       />
 
       {/* 10. Main Output Video / Placeholder Canvas */}
       <div className="video-container">
-        {videoUrl ? (
+        {activeSlot.videoUrl ? (
           <video 
             ref={videoRef}
             className="video-player" 
-            src={videoUrl} 
+            src={activeSlot.videoUrl} 
             controls 
             autoPlay 
             loop 
@@ -585,8 +660,8 @@ export const VideoGenerator: React.FC = () => {
         ) : (
           <div className="video-placeholder">
             <div className="placeholder-icon">🎬</div>
-            <p style={{ fontSize: '0.95rem' }}>{isLoading ? 'AI is crafting a stunning video. This process may take a few minutes.' : 'Provide a prompt and optional image, then click Generate.'}</p>
-            {isLoading && (
+            <p style={{ fontSize: '0.95rem' }}>{activeSlot.isLoading ? 'AI is crafting a stunning video. This process may take a few minutes.' : 'Provide a prompt and optional image, then click Generate.'}</p>
+            {activeSlot.isLoading && (
               <div style={{
                 marginTop: '1.2rem',
                 padding: '0.8rem 1.5rem',
@@ -631,11 +706,11 @@ export const VideoGenerator: React.FC = () => {
                   </div>
                 </div>
                 <button 
-                  onClick={() => setVideoUrl(item.url)} 
+                  onClick={() => updateSlot(activeSlotIdx, { videoUrl: item.url })} 
                   className="btn-primary" 
                   style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', background: 'var(--primary-color)', border: 'none', borderRadius: '8px' }}
                 >
-                  Play
+                  Play in Slot {activeSlotIdx + 1}
                 </button>
                 <a 
                   href={item.url} 

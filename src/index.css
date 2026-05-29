@@ -764,3 +764,123 @@ label {
   background: rgba(255, 255, 255, 0.25);
 }
 
+/* ==========================================================================
+   Multi-Slot Tabs Styling (GeirdevVideoGen Premium Upgrade)
+   ========================================================================== */
+.slot-tabs-container {
+  display: flex;
+  gap: 0.6rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 0.45rem;
+  margin-bottom: 1.8rem;
+  width: 100%;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slot-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  background: transparent;
+  border: none;
+  border-radius: 11px;
+  padding: 0.85rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative;
+}
+
+.slot-tab-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.slot-tab-btn.active {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.slot-tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0px;
+  left: 15%;
+  right: 15%;
+  height: 2px;
+  background: linear-gradient(90deg, #7b2cbf, #ff4d6d);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(255, 77, 109, 0.8);
+}
+
+.slot-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.82rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.slot-badge.generating {
+  animation: tab-pulse 1.5s infinite;
+}
+
+@keyframes tab-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.6; }
+}
+
+.slot-logout-btn {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  border: 1px solid var(--glass-border);
+  border-radius: 11px;
+  padding: 0 1.2rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  height: 44px;
+  align-self: center;
+  margin-left: 1rem;
+}
+
+.slot-logout-btn:hover:not(:disabled) {
+  color: #ef476f;
+  border-color: rgba(239, 71, 111, 0.4);
+  background: rgba(239, 71, 111, 0.05);
+}
+
+.slot-logout-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .slot-tabs-container {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+  .slot-logout-btn {
+    width: 100%;
+    margin-left: 0;
+    justify-content: center;
+  }
+}
+
+
+
